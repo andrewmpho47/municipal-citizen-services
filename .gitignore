@@ -1,0 +1,20 @@
+# Visual Studio / .NET build outputs
+bin/
+obj/
+.vs/
+.vscode/
+
+# User-specific settings
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Compiled / generated artifacts
+*.cache
+*.pdb
+*.log
+
+# Package / test generated folders
+packages/
+TestResults/
