@@ -2,6 +2,13 @@
 setlocal
 
 if not exist bin\Debug mkdir bin\Debug
+if not exist bin\Debug\Assets mkdir bin\Debug\Assets
+
+copy /Y Assets\MunicipalCitizensServicesBanner.png bin\Debug\Assets\MunicipalCitizensServicesBanner.png >nul
+if errorlevel 1 (
+  echo Could not copy the municipal services banner.
+  exit /b 1
+)
 
 "%WINDIR%\Microsoft.NET\Framework\v4.0.30319\csc.exe" ^
   /nologo ^
@@ -15,9 +22,14 @@ if not exist bin\Debug mkdir bin\Debug
   Program.cs ^
   Forms\MainMenuForm.cs ^
   Forms\ReportIssueForm.cs ^
+  Forms\IssueListForm.cs ^
+  Forms\EventAnnouncementsForm.cs ^
   Models\MunicipalIssue.cs ^
+  Models\MunicipalEvent.cs ^
   Models\ReportAttachment.cs ^
   Services\ReportRepository.cs ^
+  Services\EventRepository.cs ^
+  Services\MunicipalBranding.cs ^
   Services\ReportingProgressCalculator.cs ^
   Properties\AssemblyInfo.cs
 

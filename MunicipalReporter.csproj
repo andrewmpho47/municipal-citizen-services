@@ -13,4 +13,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3" PrivateAssets="all" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Assets\MunicipalCitizensServicesBanner.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

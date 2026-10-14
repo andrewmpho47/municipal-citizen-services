@@ -272,7 +272,15 @@ namespace MunicipalReporter.Forms
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
 
+            using (IssueListForm issueListForm = new IssueListForm(issueRepository))
+            {
+                Hide();
+                issueListForm.ShowDialog(this);
+                Show();
+            }
+
             ClearForm();
+            Close();
         }
 
         private string ValidateReport()
