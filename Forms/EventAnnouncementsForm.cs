@@ -10,6 +10,7 @@ namespace MunicipalReporter.Forms
     public class EventAnnouncementsForm : Form
     {
         private readonly EventRepository eventRepository;
+        private readonly UserRole userRole;
         private ComboBox categoryComboBox;
         private DateTimePicker fromDatePicker;
         private DateTimePicker toDatePicker;
@@ -19,9 +20,15 @@ namespace MunicipalReporter.Forms
         private Label resultCountLabel;
         private Label eventDetailsLabel;
 
-        public EventAnnouncementsForm(EventRepository repository)
+        public EventAnnouncementsForm(EventRepository repository, UserRole authenticatedRole)
         {
+            if (!Enum.IsDefined(typeof(UserRole), authenticatedRole))
+            {
+                throw new ArgumentOutOfRangeException("authenticatedRole");
+            }
+
             eventRepository = repository;
+            userRole = authenticatedRole;
             InitializeComponent();
             LoadUpcomingEvents();
         }
@@ -67,11 +74,13 @@ namespace MunicipalReporter.Forms
 
             searchPanel.Controls.Add(CreateFilterLabel("Category"));
             categoryComboBox = new ComboBox();
-            categoryComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            categoryComboBox.DropDownStyle = ComboBoxStyle.DropDown;
             categoryComboBox.Font = new Font("Segoe UI", 9.5F);
             categoryComboBox.Width = 155;
             categoryComboBox.Items.Add("All categories");
             categoryComboBox.Items.AddRange(eventRepository.GetCategories().ToArray());
+            categoryComboBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+            categoryComboBox.AutoCompleteSource = AutoCompleteSource.ListItems;
             categoryComboBox.SelectedIndex = 0;
             searchPanel.Controls.Add(categoryComboBox);
 
@@ -92,6 +101,14 @@ namespace MunicipalReporter.Forms
             Button clearButton = CreateSecondaryButton("Clear filters");
             clearButton.Click += ClearButton_Click;
             searchPanel.Controls.Add(clearButton);
+
+            if (userRole == UserRole.Admin)
+            {
+                Button addAnnouncementButton = CreateSecondaryButton("Add announcement");
+                addAnnouncementButton.Width = 155;
+                addAnnouncementButton.Click += AddAnnouncementButton_Click;
+                searchPanel.Controls.Add(addAnnouncementButton);
+            }
 
             SplitContainer content = new SplitContainer();
             content.Dock = DockStyle.Fill;
@@ -323,10 +340,7 @@ namespace MunicipalReporter.Forms
                 return;
             }
 
-            string category = categoryComboBox.SelectedItem == null
-                ? "All categories"
-                : categoryComboBox.SelectedItem.ToString();
-            List<MunicipalEvent> results = eventRepository.SearchEvents(category, fromDate, toDate);
+            List<MunicipalEvent> results = eventRepository.SearchEvents(categoryComboBox.Text, fromDate, toDate);
             DisplayEvents(results);
             UpdateRecommendations(results);
         }
@@ -337,6 +351,45 @@ namespace MunicipalReporter.Forms
             fromDatePicker.Checked = false;
             toDatePicker.Checked = false;
             LoadUpcomingEvents();
+        }
+
+        private void AddAnnouncementButton_Click(object sender, EventArgs e)
+        {
+            if (userRole != UserRole.Admin)
+            {
+                throw new UnauthorizedAccessException("Only a municipal admin may publish announcements.");
+            }
+
+            using (AnnouncementForm announcementForm = new AnnouncementForm())
+            {
+                if (announcementForm.ShowDialog(this) != DialogResult.OK)
+                {
+                    return;
+                }
+
+                MunicipalEvent addedEvent = eventRepository.AddAnnouncement(
+                    announcementForm.AnnouncementTitle,
+                    announcementForm.Category,
+                    announcementForm.Description,
+                    announcementForm.EventDate,
+                    announcementForm.AnnouncementLocation);
+
+                categoryComboBox.Items.Clear();
+                categoryComboBox.Items.Add("All categories");
+                categoryComboBox.Items.AddRange(eventRepository.GetCategories().ToArray());
+                categoryComboBox.SelectedIndex = 0;
+                LoadUpcomingEvents();
+
+                foreach (ListViewItem item in eventListView.Items)
+                {
+                    if (string.Equals(item.Tag as string, addedEvent.EventId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        item.Selected = true;
+                        item.EnsureVisible();
+                        break;
+                    }
+                }
+            }
         }
 
         private void EventListView_SelectedIndexChanged(object sender, EventArgs e)

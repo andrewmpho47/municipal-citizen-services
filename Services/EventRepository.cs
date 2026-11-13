@@ -18,6 +18,7 @@ namespace MunicipalReporter.Services
         private readonly Stack<string> recentSearches = new Stack<string>();
         private readonly Dictionary<string, int> categorySearchCounts =
             new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        private int nextAnnouncementId = 2001;
 
         public EventRepository()
         {
@@ -35,6 +36,29 @@ namespace MunicipalReporter.Services
         public List<MunicipalEvent> GetUpcomingEvents()
         {
             return upcomingEvents.ToList();
+        }
+
+        public MunicipalEvent AddAnnouncement(string title, string category, string description, DateTime eventDate, string location)
+        {
+            if (string.IsNullOrWhiteSpace(title) ||
+                string.IsNullOrWhiteSpace(category) ||
+                string.IsNullOrWhiteSpace(description) ||
+                string.IsNullOrWhiteSpace(location))
+            {
+                throw new ArgumentException("Title, category, description, and location are required.");
+            }
+
+            if (eventDate < DateTime.Now)
+            {
+                throw new ArgumentOutOfRangeException("eventDate", "An announcement must have a future date and time.");
+            }
+
+            string eventId = "EVT-" + nextAnnouncementId++;
+            MunicipalEvent municipalEvent = new MunicipalEvent(
+                eventId, title.Trim(), category.Trim(), description.Trim(), eventDate, location.Trim());
+            AddEvent(municipalEvent);
+            RebuildUpcomingQueue();
+            return municipalEvent;
         }
 
         public List<MunicipalEvent> SearchEvents(string category, DateTime? fromDate, DateTime? toDate)
@@ -181,6 +205,7 @@ namespace MunicipalReporter.Services
 
         private void RebuildUpcomingQueue()
         {
+            upcomingEvents.Clear();
             foreach (KeyValuePair<DateTime, List<MunicipalEvent>> dateGroup in eventsByDate)
             {
                 foreach (MunicipalEvent municipalEvent in dateGroup.Value)

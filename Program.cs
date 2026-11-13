@@ -11,7 +11,26 @@ namespace MunicipalReporter
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new MainMenuForm());
+
+            while (true)
+            {
+                using (LoginForm loginForm = new LoginForm())
+                {
+                    if (loginForm.ShowDialog() != DialogResult.OK)
+                    {
+                        return;
+                    }
+
+                    using (MainMenuForm mainMenu = new MainMenuForm(loginForm.AuthenticatedRole))
+                    {
+                        mainMenu.ShowDialog();
+                        if (!mainMenu.SwitchUserRequested)
+                        {
+                            return;
+                        }
+                    }
+                }
+            }
         }
     }
 }

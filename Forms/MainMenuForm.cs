@@ -8,12 +8,21 @@ namespace MunicipalReporter.Forms
 {
     public class MainMenuForm : Form
     {
-        private static readonly ReportRepository<MunicipalIssue> IssueRepository = new ReportRepository<MunicipalIssue>();
+        private static readonly ServiceRequestRepository IssueRepository = new ServiceRequestRepository();
         private static readonly EventRepository EventRepository = new EventRepository();
+        private readonly UserRole userRole;
         private Label summaryLabel;
 
-        public MainMenuForm()
+        public bool SwitchUserRequested { get; private set; }
+
+        public MainMenuForm(UserRole authenticatedRole)
         {
+            if (!Enum.IsDefined(typeof(UserRole), authenticatedRole))
+            {
+                throw new ArgumentOutOfRangeException("authenticatedRole");
+            }
+
+            userRole = authenticatedRole;
             InitializeComponent();
         }
 
@@ -45,9 +54,10 @@ namespace MunicipalReporter.Forms
             TableLayoutPanel headerPanel = new TableLayoutPanel();
             headerPanel.Dock = DockStyle.Top;
             headerPanel.ColumnCount = 1;
-            headerPanel.RowCount = 2;
+            headerPanel.RowCount = 3;
             headerPanel.AutoSize = true;
             headerPanel.Margin = new Padding(0, 0, 0, 20);
+            headerPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             headerPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             headerPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             root.Controls.Add(headerPanel, 0, 0);
@@ -61,11 +71,21 @@ namespace MunicipalReporter.Forms
             headerPanel.Controls.Add(titleLabel, 0, 0);
 
             Label instructionLabel = new Label();
-            instructionLabel.Text = "Report a local issue or explore community events and announcements.";
+            instructionLabel.Text = userRole == UserRole.Admin
+                ? "Review service requests and manage municipal events and announcements."
+                : "Report a local issue, explore events, or track a service request.";
             instructionLabel.Font = new Font("Segoe UI", 10F);
             instructionLabel.ForeColor = Color.FromArgb(70, 82, 92);
             instructionLabel.AutoSize = true;
             headerPanel.Controls.Add(instructionLabel, 0, 1);
+
+            Label roleLabel = new Label();
+            roleLabel.Text = "Signed in as: " + (userRole == UserRole.Admin ? "Municipal Admin" : "Citizen");
+            roleLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            roleLabel.ForeColor = Color.FromArgb(36, 106, 163);
+            roleLabel.AutoSize = true;
+            roleLabel.Margin = new Padding(0, 6, 0, 0);
+            headerPanel.Controls.Add(roleLabel, 0, 2);
 
             TableLayoutPanel menuPanel = new TableLayoutPanel();
             menuPanel.Dock = DockStyle.Fill;
@@ -88,21 +108,35 @@ namespace MunicipalReporter.Forms
             buttonPanel.Anchor = AnchorStyles.None;
             menuPanel.Controls.Add(buttonPanel, 1, 0);
 
-            Button reportButton = CreateMenuButton("Report Issues");
-            reportButton.Click += ReportButton_Click;
-            buttonPanel.Controls.Add(reportButton);
+            if (userRole == UserRole.Citizen)
+            {
+                Button reportButton = CreateMenuButton("Report Issues");
+                reportButton.Click += ReportButton_Click;
+                buttonPanel.Controls.Add(reportButton);
+            }
+            else
+            {
+                Button submittedIssuesButton = CreateMenuButton("View Submitted Issues");
+                submittedIssuesButton.Click += ViewSubmittedIssuesButton_Click;
+                buttonPanel.Controls.Add(submittedIssuesButton);
+            }
 
-            Button submittedIssuesButton = CreateMenuButton("View Submitted Issues");
-            submittedIssuesButton.Click += ViewSubmittedIssuesButton_Click;
-            buttonPanel.Controls.Add(submittedIssuesButton);
-
-            Button eventsButton = CreateMenuButton("Local Events and Announcements");
+            Button eventsButton = CreateMenuButton(userRole == UserRole.Admin
+                ? "Manage Events and Announcements"
+                : "Local Events and Announcements");
             eventsButton.Click += EventsButton_Click;
             buttonPanel.Controls.Add(eventsButton);
 
-            Button statusButton = CreateMenuButton("Service Request Status");
+            Button statusButton = CreateMenuButton(userRole == UserRole.Admin
+                ? "Review Service Requests"
+                : "Track Service Request");
             statusButton.Click += StatusButton_Click;
             buttonPanel.Controls.Add(statusButton);
+
+            Button switchUserButton = CreateMenuButton("Switch User / Log Out");
+            switchUserButton.BackColor = Color.FromArgb(92, 105, 115);
+            switchUserButton.Click += SwitchUserButton_Click;
+            buttonPanel.Controls.Add(switchUserButton);
 
             summaryLabel = new Label();
             summaryLabel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
@@ -138,7 +172,12 @@ namespace MunicipalReporter.Forms
 
         private void ReportButton_Click(object sender, EventArgs e)
         {
-            using (ReportIssueForm reportForm = new ReportIssueForm(IssueRepository))
+            if (userRole != UserRole.Citizen)
+            {
+                return;
+            }
+
+            using (ReportIssueForm reportForm = new ReportIssueForm(IssueRepository, userRole))
             {
                 Hide();
                 reportForm.ShowDialog(this);
@@ -148,7 +187,12 @@ namespace MunicipalReporter.Forms
 
         private void ViewSubmittedIssuesButton_Click(object sender, EventArgs e)
         {
-            using (IssueListForm issueListForm = new IssueListForm(IssueRepository))
+            if (userRole != UserRole.Admin)
+            {
+                return;
+            }
+
+            using (IssueListForm issueListForm = new IssueListForm(IssueRepository, userRole))
             {
                 Hide();
                 issueListForm.ShowDialog(this);
@@ -158,7 +202,7 @@ namespace MunicipalReporter.Forms
 
         private void EventsButton_Click(object sender, EventArgs e)
         {
-            using (EventAnnouncementsForm eventsForm = new EventAnnouncementsForm(EventRepository))
+            using (EventAnnouncementsForm eventsForm = new EventAnnouncementsForm(EventRepository, userRole))
             {
                 Hide();
                 eventsForm.ShowDialog(this);
@@ -168,12 +212,18 @@ namespace MunicipalReporter.Forms
 
         private void StatusButton_Click(object sender, EventArgs e)
         {
-            MessageBox.Show(
-                this,
-                "Service Request Status is coming soon.",
-                "Coming Soon",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
+            using (ServiceRequestStatusForm statusForm = new ServiceRequestStatusForm(IssueRepository, userRole))
+            {
+                Hide();
+                statusForm.ShowDialog(this);
+                Show();
+            }
+        }
+
+        private void SwitchUserButton_Click(object sender, EventArgs e)
+        {
+            SwitchUserRequested = true;
+            Close();
         }
     }
 }

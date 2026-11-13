@@ -10,7 +10,7 @@ namespace MunicipalReporter.Forms
 {
     public class ReportIssueForm : Form
     {
-        private readonly ReportRepository<MunicipalIssue> issueRepository;
+        private readonly ServiceRequestRepository issueRepository;
         private readonly List<ReportAttachment> attachments = new List<ReportAttachment>();
         private readonly string[] categories = new string[] { "Sanitation", "Roads", "Utilities", "Water", "Electricity", "Public Safety", "Other" };
         private readonly string[] encouragementMessages = new string[]
@@ -29,8 +29,13 @@ namespace MunicipalReporter.Forms
         private ProgressBar progressBar;
         private Label engagementLabel;
 
-        public ReportIssueForm(ReportRepository<MunicipalIssue> repository)
+        public ReportIssueForm(ServiceRequestRepository repository, UserRole userRole)
         {
+            if (userRole != UserRole.Citizen)
+            {
+                throw new UnauthorizedAccessException("Only a citizen may submit an issue.");
+            }
+
             issueRepository = repository;
             InitializeComponent();
             UpdateEngagement();
@@ -267,17 +272,12 @@ namespace MunicipalReporter.Forms
 
             MessageBox.Show(
                 this,
-                "Your issue has been submitted successfully.\nReference number: " + issue.ReferenceNumber,
+                "Your issue has been submitted successfully and is now pending municipal review." +
+                Environment.NewLine + Environment.NewLine +
+                "You can check its status later from Track Service Request.",
                 "Report submitted",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
-
-            using (IssueListForm issueListForm = new IssueListForm(issueRepository))
-            {
-                Hide();
-                issueListForm.ShowDialog(this);
-                Show();
-            }
 
             ClearForm();
             Close();

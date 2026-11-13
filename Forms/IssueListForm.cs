@@ -9,12 +9,17 @@ namespace MunicipalReporter.Forms
 {
     public class IssueListForm : Form
     {
-        private readonly ReportRepository<MunicipalIssue> issueRepository;
+        private readonly ServiceRequestRepository issueRepository;
         private ListView issueListView;
         private Label statusLabel;
 
-        public IssueListForm(ReportRepository<MunicipalIssue> repository)
+        public IssueListForm(ServiceRequestRepository repository, UserRole userRole)
         {
+            if (userRole != UserRole.Admin)
+            {
+                throw new UnauthorizedAccessException("Only a municipal admin may view all submitted issues.");
+            }
+
             issueRepository = repository;
             InitializeComponent();
             LoadIssues();

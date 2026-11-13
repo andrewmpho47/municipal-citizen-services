@@ -20,14 +20,19 @@ if errorlevel 1 (
   /reference:System.Drawing.dll ^
   /reference:System.Windows.Forms.dll ^
   Program.cs ^
+  Forms\LoginForm.cs ^
   Forms\MainMenuForm.cs ^
   Forms\ReportIssueForm.cs ^
   Forms\IssueListForm.cs ^
   Forms\EventAnnouncementsForm.cs ^
+  Forms\ServiceRequestStatusForm.cs ^
+  Forms\AnnouncementForm.cs ^
   Models\MunicipalIssue.cs ^
+  Models\UserRole.cs ^
   Models\MunicipalEvent.cs ^
   Models\ReportAttachment.cs ^
   Services\ReportRepository.cs ^
+  Services\ServiceRequestRepository.cs ^
   Services\EventRepository.cs ^
   Services\MunicipalBranding.cs ^
   Services\ReportingProgressCalculator.cs ^

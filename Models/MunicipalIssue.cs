@@ -26,6 +26,8 @@ namespace MunicipalReporter.Models
             Attachments = attachments ?? new List<ReportAttachment>();
             CreatedAt = DateTime.Now;
             Status = "Submitted";
+            StatusUpdatedAt = CreatedAt;
+            StatusHistory = new List<string> { Status + " - " + CreatedAt.ToString("dd MMM yyyy HH:mm") };
         }
 
         public string ReferenceNumber { get; private set; }
@@ -35,6 +37,15 @@ namespace MunicipalReporter.Models
         public List<ReportAttachment> Attachments { get; private set; }
         public DateTime CreatedAt { get; private set; }
         public string Status { get; private set; }
+        public DateTime StatusUpdatedAt { get; private set; }
+        public List<string> StatusHistory { get; private set; }
+
+        internal void UpdateStatus(string status)
+        {
+            Status = status;
+            StatusUpdatedAt = DateTime.Now;
+            StatusHistory.Add(Status + " - " + StatusUpdatedAt.ToString("dd MMM yyyy HH:mm"));
+        }
 
         public void AddAttachment(ReportAttachment attachment)
         {
